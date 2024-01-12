@@ -21,6 +21,7 @@ type (
 		Password string // Docker registry password
 		Email    string // Docker registry email
 		Config   string // Docker Auth Config
+		Insecure bool
 	}
 
 	// Build defines Docker build parameters.
@@ -53,6 +54,7 @@ type (
 		S3Secret    string
 		S3UseSSL    bool
 		Layers      bool
+		Insecure    bool
 	}
 
 	// Plugin defines the Docker plugin parameters.
@@ -154,15 +156,23 @@ func (p Plugin) Exec() error {
 
 // helper function to create the docker login command.
 func commandLogin(login Login) *exec.Cmd {
-	if login.Email != "" {
-		return commandLoginEmail(login)
+	args := []string{
+		"login",
 	}
-	return exec.Command(
-		buildahExe, "login",
-		"-u", login.Username,
-		"-p", login.Password,
-		login.Registry,
-	)
+
+	if login.Insecure {
+		args = append(args, "--tls-verify=false")
+	}
+
+	args = append(args, "-u", login.Username, "-p", login.Password)
+
+	if login.Email != "" {
+		args = append(args, "-e", login.Email)
+	}
+
+	args = append(args, login.Registry)
+
+	return exec.Command(buildahExe, args...)
 }
 
 // helper to check if args match "docker pull <image>"
@@ -172,16 +182,6 @@ func isCommandPull(args []string) bool {
 
 func commandPull(repo string) *exec.Cmd {
 	return exec.Command(buildahExe, "pull", repo)
-}
-
-func commandLoginEmail(login Login) *exec.Cmd {
-	return exec.Command(
-		buildahExe, "login",
-		"-u", login.Username,
-		"-p", login.Password,
-		"-e", login.Email,
-		login.Registry,
-	)
 }
 
 // helper function to create the docker info command.
@@ -343,7 +343,16 @@ func commandTag(build Build, tag string) *exec.Cmd {
 // helper function to create the docker push command.
 func commandPush(build Build, tag string) *exec.Cmd {
 	target := fmt.Sprintf("%s:%s", build.Repo, tag)
-	return exec.Command(buildahExe, "push", "--storage-driver", "vfs", target)
+
+	args := []string{}
+
+	if build.Insecure {
+		args = append(args, "--tls-verify=false")
+	}
+
+	args = append(args, "push", "--storage-driver", "vfs", target)
+
+	return exec.Command(buildahExe, args...)
 }
 
 // helper to check if args match "docker prune"

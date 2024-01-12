@@ -222,6 +222,11 @@ func main() {
 			Usage:  "User Layers",
 			EnvVar: "PLUGIN_LAYERS",
 		},
+		cli.BoolFlag{
+			Name:   "insecure",
+			Usage:  "Login and push to insecure registry",
+			EnvVar: "PLUGIN_INSECURE",
+		},
 	}
 
 	if err := app.Run(os.Args); err != nil {
@@ -239,6 +244,7 @@ func run(c *cli.Context) error {
 			Password: c.String("docker.password"),
 			Email:    c.String("docker.email"),
 			Config:   c.String("docker.config"),
+			Insecure: c.Bool("insecure"),
 		},
 		Build: docker.Build{
 			Remote:      c.String("remote.url"),
@@ -269,6 +275,7 @@ func run(c *cli.Context) error {
 			S3Secret:    c.String("s3-secret"),
 			S3UseSSL:    c.Bool("s3-use-ssl"),
 			Layers:      c.Bool("layers"),
+			Insecure:    c.Bool("insecure"),
 		},
 	}
 
